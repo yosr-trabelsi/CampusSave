@@ -1,0 +1,21 @@
+# Dépendances et builds
+node_modules/
+dist/
+build/
+.dart_tool/
+
+# Secrets : NE JAMAIS COMMITER
+.env
+*.env
+!.env.example
+serviceAccountKey.json
+google-services.json
+GoogleService-Info.plist
+key.properties
+*.jks
+
+# Divers
+.DS_Store
+.idea/
+.vscode/
+*.log
