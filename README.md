@@ -46,9 +46,9 @@ Créer un projet Firebase, activer Authentication, Firestore et Cloud Messaging,
 puis renseigner les variables dans les fichiers `.env` (jamais de clés dans Git).
 
 ## Équipe
-- Personne 1 : 
-- Personne 2 : 
-- Personne 3 : 
-- Personne 4 : 
-- Personne 5 : 
-- Personne 6 : 
+- Personne 1 : Ayoub Mzoughi
+- Personne 2 : Takwa Toukebri
+- Personne 3 : Zeyneb Mabrouk
+- Personne 4 : Molka Amor
+- Personne 5 : Yosr Trabelsi
+- Personne 6 : Islem Nefzi
