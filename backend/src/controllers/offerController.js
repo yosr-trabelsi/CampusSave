@@ -1,0 +1,216 @@
+const { db } = require('../config/firebase');
+
+const getOffers = async (req, res) => {
+  try {
+    const snapshot = await db.collection('offers')
+      .where('isAvailable', '==', true)
+      .get();
+
+    const offers = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    return res.status(200).json(offers);
+
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Erreur lors de la récupération des offres.'
+    });
+  }
+};
+
+const getOfferById = async (req, res) => {
+  try {
+    const offerDoc = await db.collection('offers')
+      .doc(req.params.id)
+      .get();
+
+    if (!offerDoc.exists) {
+      return res.status(404).json({
+        error: 'Offre introuvable.'
+      });
+    }
+
+    return res.status(200).json({
+      id: offerDoc.id,
+      ...offerDoc.data()
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Erreur lors de la récupération de l offre.'
+    });
+  }
+};
+
+const createOffer = async (req, res) => {
+  try {
+    const {
+      title,
+      description,
+      price,
+      originalPrice,
+      quantity,
+      expirationDate
+    } = req.body;
+
+    if (
+      !title ||
+      price === undefined ||
+      originalPrice === undefined ||
+      quantity === undefined
+    ) {
+      return res.status(400).json({
+        error: 'Informations obligatoires manquantes.'
+      });
+    }
+
+    if (
+      !Number.isFinite(Number(price)) ||
+      !Number.isFinite(Number(originalPrice)) ||
+      !Number.isInteger(Number(quantity)) ||
+      Number(price) < 0 ||
+      Number(originalPrice) < Number(price) ||
+      Number(quantity) <= 0
+    ) {
+      return res.status(400).json({
+        error: 'Prix ou quantité invalide.'
+      });
+    }
+
+    const merchantDoc = await db.collection('merchants')
+      .doc(req.user.uid)
+      .get();
+
+    if (!merchantDoc.exists ||
+        merchantDoc.data().approvalStatus !== 'approved') {
+      return res.status(403).json({
+        error: 'Commerce non approuvé.'
+      });
+    }
+
+    const offerData = {
+      merchantId: req.user.uid,
+      businessName: merchantDoc.data().businessName,
+      title,
+      description: description || '',
+      price: Number(price),
+      originalPrice: Number(originalPrice),
+      quantity: Number(quantity),
+      expirationDate: expirationDate || null,
+      isAvailable: true,
+      createdAt: new Date().toISOString()
+    };
+
+    const offerRef = await db.collection('offers').add(offerData);
+
+    return res.status(201).json({
+      message: 'Offre créée avec succès.',
+      offerId: offerRef.id
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Erreur lors de la création de l offre.'
+    });
+  }
+};
+
+const updateOffer = async (req, res) => {
+  try {
+    const { title, description, price, originalPrice, quantity, expirationDate } = req.body;
+
+    const offerRef = db.collection('offers').doc(req.params.id);
+    const offerDoc = await offerRef.get();
+
+    if (!offerDoc.exists) {
+      return res.status(404).json({
+        error: 'Offre introuvable.'
+      });
+    }
+
+    if (offerDoc.data().merchantId !== req.user.uid) {
+      return res.status(403).json({
+        error: 'Vous ne pouvez pas modifier cette offre.'
+      });
+    }
+
+    const updates = {};
+
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (expirationDate !== undefined) updates.expirationDate = expirationDate;
+
+    if (price !== undefined) {
+      if (!Number.isFinite(Number(price)) || Number(price) < 0) {
+        return res.status(400).json({ error: 'Prix invalide.' });
+      }
+      updates.price = Number(price);
+    }
+
+    if (originalPrice !== undefined) {
+      if (!Number.isFinite(Number(originalPrice)) || Number(originalPrice) < 0) {
+        return res.status(400).json({ error: 'Prix original invalide.' });
+      }
+      updates.originalPrice = Number(originalPrice);
+    }
+
+    if (quantity !== undefined) {
+      if (!Number.isInteger(Number(quantity)) || Number(quantity) < 0) {
+        return res.status(400).json({ error: 'Quantité invalide.' });
+      }
+      updates.quantity = Number(quantity);
+      updates.isAvailable = Number(quantity) > 0;
+    }
+
+    await offerRef.update(updates);
+
+    return res.status(200).json({
+      message: 'Offre modifiée avec succès.'
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Erreur lors de la modification de l offre.'
+    });
+  }
+};
+
+const deleteOffer = async (req, res) => {
+  try {
+    const offerRef = db.collection('offers').doc(req.params.id);
+    const offerDoc = await offerRef.get();
+
+    if (!offerDoc.exists) {
+      return res.status(404).json({
+        error: 'Offre introuvable.'
+      });
+    }
+
+    if (offerDoc.data().merchantId !== req.user.uid) {
+      return res.status(403).json({
+        error: 'Vous ne pouvez pas supprimer cette offre.'
+      });
+    }
+
+    await offerRef.delete();
+
+    return res.status(200).json({
+      message: 'Offre supprimée avec succès.'
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      error: 'Erreur lors de la suppression de l offre.'
+    });
+  }
+};
+
+module.exports = {
+  getOffers,
+  getOfferById,
+  createOffer,
+  updateOffer,
+  deleteOffer
+};

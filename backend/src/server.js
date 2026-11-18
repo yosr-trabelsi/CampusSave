@@ -1,24 +1,49 @@
+
 require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
-const { db } = require('./config/firebase');
+
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const merchantRoutes = require('./routes/merchantRoutes');
+const offerRoutes = require('./routes/offerRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+
+const errorMiddleware = require('./middleware/errorMiddleware');
 
 const app = express();
+
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+app.post('/api/test-body', (req, res) => {
+  console.log('BODY REÇU :', req.body);
+
+  res.status(200).json({
+    received: req.body
+  });
+});
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+  res.status(200).json({
+    message: 'CampusSave API fonctionne correctement.'
+  });
 });
 
-app.get('/api/test-db', async (req, res) => {
-  try {
-    await db.collection('test').add({ createdAt: new Date() });
-    res.json({ message: 'Connexion Firestore OK' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/merchants', merchantRoutes);
+app.use('/api/offers', offerRoutes);
+app.use('/api/orders', orderRoutes);
+
+app.use(errorMiddleware);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Serveur lancé sur le port ${PORT}`));
+
+app.listen(PORT, () => {
+  console.log(`CampusSave API démarrée sur le port ${PORT}`);
+});
