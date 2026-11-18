@@ -1,113 +1,51 @@
-const { db, auth } = require('../config/firebase');
+// Inscription + profil. La CONNEXION se fait côté client avec le SDK Firebase
+// (signInWithEmailAndPassword) : le client récupère un ID token et l'envoie
+// ensuite dans le header  Authorization: Bearer <token>.
+const { auth, db } = require('../config/firebase');
 
-const registerUser = async (req, res) => {
+// POST /api/auth/register  (public)
+exports.register = async (req, res, next) => {
+  const { email, password, name, role, phone, businessName, address } = req.body;
+
+  let created;
   try {
-    const { email, password, fullName, phone } = req.body || {};
+    created = await auth.createUser({ email, password, displayName: name });
+  } catch (err) {
+    if (err.code === 'auth/email-already-exists')
+      return res.status(409).json({ message: 'Cet email est déjà utilisé' });
+    if (err.code === 'auth/invalid-password' || err.code === 'auth/invalid-email')
+      return res.status(400).json({ message: err.message });
+    return next(err);
+  }
 
-    if (!email || !password || !fullName) {
-      return res.status(400).json({
-        error: 'Email, mot de passe et nom complet sont obligatoires.'
-      });
-    }
-
-    if (password.length < 6) {
-      return res.status(400).json({
-        error: 'Le mot de passe doit contenir au moins 6 caractères.'
-      });
-    }
-
-    const userRecord = await auth.createUser({
+  try {
+    // Un commerçant doit être validé par l'admin avant d'être actif
+    const status = role === 'merchant' ? 'pending' : 'active';
+    const profile = {
+      uid: created.uid,
       email,
-      password,
-      displayName: fullName
-    });
-
-    const userData = {
-      uid: userRecord.uid,
-      fullName,
-      email,
-      phone: phone || '',
-      role: 'student',
+      name,
+      role,
+      status,
+      phone: phone || null,
       createdAt: new Date().toISOString(),
-      isActive: true
+      ...(role === 'merchant' && { businessName, address }),
     };
+    await db.collection('users').doc(created.uid).set(profile);
 
-    try {
-      await db.collection('users')
-        .doc(userRecord.uid)
-        .set(userData);
-    } catch (firestoreError) {
-      await auth.deleteUser(userRecord.uid);
-      throw firestoreError;
-    }
-
-    return res.status(201).json({
-      message: 'Utilisateur créé avec succès.',
-      uid: userRecord.uid,
-      role: 'student'
-    });
-
-  } catch (error) {
-    console.error('ERREUR COMPLETE :', error);
-    console.error('CODE ERREUR :', error.code);
-    console.error('MESSAGE :', error.message); 
-
-    if (error.code === 'auth/email-already-exists') {
-      return res.status(409).json({
-        error: 'Cette adresse email est déjà utilisée.'
-      });
-    }
-
-    if (error.code === 'auth/invalid-email') {
-      return res.status(400).json({
-        error: 'Adresse email invalide.'
-      });
-    }
-
-    if (error.code === 'auth/weak-password') {
-      return res.status(400).json({
-        error: 'Le mot de passe doit contenir au moins 6 caractères.'
-      });
-    }
-
-    return res.status(500).json({
-      error: 'Erreur serveur lors de la création du compte.'
-    });
+    res.status(201).json({ uid: created.uid, role, status });
+  } catch (err) {
+    // On annule le compte Auth si le profil n'a pas pu être créé
+    await auth.deleteUser(created.uid).catch(() => {});
+    next(err);
   }
 };
 
-const getProfile = async (req, res) => {
+// GET /api/auth/me  (connecté) : profil de l'utilisateur
+exports.me = async (req, res, next) => {
   try {
-    if (!req.user || !req.user.uid) {
-      return res.status(401).json({
-        error: 'Utilisateur non authentifié.'
-      });
-    }
-
-    const uid = req.user.uid;
-
-    const userDoc = await db.collection('users')
-      .doc(uid)
-      .get();
-
-    if (!userDoc.exists) {
-      return res.status(404).json({
-        error: 'Utilisateur introuvable.'
-      });
-    }
-
-    return res.status(200).json(userDoc.data());
-
-  } catch (error) {
-    console.error('Erreur lors de la récupération du profil :', error);
-
-    return res.status(500).json({
-      error: 'Erreur serveur lors de la récupération du profil.'
-    });
-  }
-};
-
-module.exports = {
-  registerUser,
-  getProfile
+    const snap = await db.collection('users').doc(req.user.uid).get();
+    if (!snap.exists) return res.status(404).json({ message: 'Profil introuvable' });
+    res.json(snap.data());
+  } catch (err) { next(err); }
 };
