@@ -5,15 +5,6 @@ import api from '../services/api'
 
 const AuthContext = createContext(null)
 
-const DEMO_KEY = 'campussave_demo_role'
-const demoUser = (role) => ({
-  uid: 'demo-' + role,
-  name: 'Compte démo',
-  email: 'demo@campussave.tn',
-  role,
-  isDemo: true,
-})
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null) // profil Firestore (name, role...)
   const [loading, setLoading] = useState(true)
@@ -21,7 +12,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     return onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
-        sessionStorage.removeItem(DEMO_KEY)
         try {
           const { data } = await api.get('/auth/me')
           setUser(data)
@@ -29,8 +19,7 @@ export function AuthProvider({ children }) {
           setUser(null)
         }
       } else {
-        const r = sessionStorage.getItem(DEMO_KEY)
-        setUser(r ? demoUser(r) : null)
+        setUser(null)
       }
       setLoading(false)
     })
@@ -38,19 +27,14 @@ export function AuthProvider({ children }) {
 
   const login = (email, password) => signInWithEmailAndPassword(auth, email, password)
 
-  const loginDemo = (role) => {
-    sessionStorage.setItem(DEMO_KEY, role)
-    setUser(demoUser(role))
-  }
   const updateUser = (patch) => setUser((u) => ({ ...u, ...patch }))
   const logout = async () => {
-    sessionStorage.removeItem(DEMO_KEY)
     setUser(null)
     try { await signOut(auth) } catch { /* ignore */ }
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginDemo, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

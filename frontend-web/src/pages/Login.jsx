@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext'
 import { homeFor } from '../components/ProtectedRoute'
 
 export default function Login() {
-  const { login, loginDemo, user } = useAuth()
+  const { login, user } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -52,16 +52,6 @@ export default function Login() {
         <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={busy}>
           <LogIn size={17} /> {busy ? 'Connexion...' : 'Se connecter'}
         </button>
-        <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid #e5e7eb' }}>
-  <p style={{ color: 'var(--muted)', textAlign: 'center', marginBottom: 10 }}>
-    Backend indisponible ? Essayer en mode démo
-  </p>
-  <div style={{ display: 'flex', gap: 8 }}>
-    <button type="button" className="btn btn-sm btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => loginDemo('student')}>Étudiant</button>
-    <button type="button" className="btn btn-sm btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => loginDemo('merchant')}>Commerçant</button>
-    <button type="button" className="btn btn-sm btn-ghost" style={{ flex: 1, justifyContent: 'center' }} onClick={() => loginDemo('admin')}>Admin</button>
-  </div>
-</div>
 
         <p style={{ marginTop: 16, textAlign: 'center', color: 'var(--muted)' }}>
           Pas de compte ? <Link to="/register" style={{ color: 'var(--primary)', fontWeight: 700 }}>S'inscrire</Link>

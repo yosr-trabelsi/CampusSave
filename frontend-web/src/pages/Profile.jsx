@@ -33,11 +33,6 @@ export default function Profile() {
       setMsg({ ok: false, text: 'Numéro de téléphone invalide' })
       return
     }
-    if (user?.isDemo) {
-      updateUser(form)
-      setMsg({ ok: true, text: 'Profil mis à jour (mode démo)' })
-      return
-    }
     try {
       const data = await updateProfile(form)
       updateUser(data)
@@ -95,7 +90,6 @@ export default function Profile() {
               </div>
             </div>
           )}
-          {user?.isDemo && <span className="badge badge-orange">Mode démo</span>}
         </div>
 
         <form className="card" onSubmit={submit}>
