@@ -5,24 +5,22 @@ import { useAuth } from '../../context/AuthContext'
 
 const CATEGORIES = ['boulangerie', 'restaurant', 'cafeteria', 'epicerie', 'patisserie', 'autre']
 
-const demo = [
-  { id: 'd1', title: 'Panier viennoiseries', price: 3, originalPrice: 9, quantity: 5, expirationDate: '2026-11-25', category: 'boulangerie', pickupStart: '17:00', pickupEnd: '19:00' },
-  { id: 'd2', title: 'Sandwich thon', price: 4, originalPrice: 8, quantity: 8, expirationDate: '2026-11-24', category: 'cafeteria', pickupStart: '18:00', pickupEnd: '20:00' },
-]
 const empty = { title: '', description: '', originalPrice: '', price: '', quantity: '', expirationDate: '', category: 'autre', imageUrl: '', pickupStart: '', pickupEnd: '' }
 
 export default function MyOffers() {
   const { user } = useAuth()
   const [offers, setOffers] = useState([])
-  const [isDemo, setIsDemo] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   const [form, setForm] = useState(empty)
   const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
 
-  const load = () =>
-    getOffers()
-      .then((all) => { setIsDemo(false); setOffers(all.filter((o) => o.merchantId === user?.uid)) })
-      .catch(() => { setOffers(demo); setIsDemo(true) })
+  const load = () => {
+    setLoadError(false)
+    return getOffers()
+      .then((all) => setOffers(all.filter((o) => o.merchantId === user?.uid)))
+      .catch(() => setLoadError(true))
+  }
 
   useEffect(() => { load() }, [])
 
@@ -70,15 +68,6 @@ export default function MyOffers() {
       quantity: Number(form.quantity),
     }
 
-    if (isDemo) {
-      if (editingId) {
-        setOffers((l) => l.map((x) => (x.id === editingId ? { ...x, ...payload } : x)))
-      } else {
-        setOffers((l) => [{ ...payload, id: 'n' + Date.now() }, ...l])
-      }
-      cancelEdit()
-      return
-    }
     try {
       if (editingId) await updateOffer(editingId, payload)
       else await createOffer(payload)
@@ -91,8 +80,10 @@ export default function MyOffers() {
 
   const remove = async (id) => {
     if (!confirm('Supprimer cette offre ?')) return
-    if (!isDemo) {
-      try { await deleteOffer(id) } catch (err) { return alert(err.response?.data?.error || 'Erreur') }
+    try {
+      await deleteOffer(id)
+    } catch (err) {
+      return alert(err.response?.data?.error || 'Erreur')
     }
     setOffers((l) => l.filter((o) => o.id !== id))
     if (editingId === id) cancelEdit()
@@ -103,12 +94,16 @@ export default function MyOffers() {
       <div className="page-header">
         <div>
           <h1>Mes offres</h1>
-          <p>
-            {offers.length} offre(s) publiée(s){' '}
-            {isDemo && <span className="badge badge-orange">Mode démo</span>}
-          </p>
+          <p>{offers.length} offre(s) publiée(s)</p>
         </div>
       </div>
+
+      {loadError && (
+        <div className="card" style={{ display: 'grid', gap: 12, marginBottom: 20 }}>
+          <div className="badge badge-red">Impossible de joindre le serveur</div>
+          <div><button className="btn btn-primary" onClick={load}>Réessayer</button></div>
+        </div>
+      )}
 
       <div className="grid grid-2">
         <form className="card" onSubmit={submit}>

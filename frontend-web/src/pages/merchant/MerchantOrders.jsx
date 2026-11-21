@@ -1,13 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Check, X, PackageCheck } from 'lucide-react'
 import { getMerchantOrders, updateOrderStatus } from '../../services/api'
-import { getDemoOrders, saveDemoOrders } from '../../services/demoOrders'
-import { useAuth } from '../../context/AuthContext'
-
-const seed = [
-  { id: 's1', offerTitle: 'Panier viennoiseries', quantity: 2, totalPrice: 6, status: 'pending', createdAt: '2026-11-21T09:30:00.000Z' },
-  { id: 's2', offerTitle: 'Sandwich thon', quantity: 1, totalPrice: 4, status: 'confirmed', createdAt: '2026-11-21T10:15:00.000Z' },
-]
 
 const badge = {
   pending: ['badge-orange', 'En attente'],
@@ -19,45 +12,30 @@ const badge = {
 
 const byDate = (a, b) => String(b.createdAt).localeCompare(String(a.createdAt))
 
-const loadDemo = () => {
-  let list = getDemoOrders()
-  if (list.length === 0) { list = seed; saveDemoOrders(list) }
-  return list
-}
-
 export default function MerchantOrders() {
-  const { user } = useAuth()
   const [orders, setOrders] = useState([])
-  const [isDemo, setIsDemo] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
-    if (user?.isDemo) {
-      setOrders(loadDemo())
-      setIsDemo(true)
-      setLoading(false)
-      return
-    }
+  const load = () => {
+    setLoading(true)
+    setError(false)
     getMerchantOrders()
       .then((list) => setOrders(list))
-      .catch(() => { setOrders(loadDemo()); setIsDemo(true) })
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [user])
+  }
+
+  useEffect(() => { load() }, [])
 
   const change = async (id, status) => {
-    if (!isDemo) {
-      try {
-        await updateOrderStatus(id, status)
-      } catch (err) {
-        alert(err.response?.data?.error || 'Erreur lors de la modification')
-        return
-      }
+    try {
+      await updateOrderStatus(id, status)
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erreur lors de la modification')
+      return
     }
-    setOrders((list) => {
-      const next = list.map((o) => (o.id === id ? { ...o, status } : o))
-      if (isDemo) saveDemoOrders(next)
-      return next
-    })
+    setOrders((list) => list.map((o) => (o.id === id ? { ...o, status } : o)))
   }
 
   const sorted = [...orders].sort(byDate)
@@ -68,15 +46,17 @@ export default function MerchantOrders() {
       <div className="page-header">
         <div>
           <h1>Commandes reçues</h1>
-          <p>
-            {pending} en attente{' '}
-            {isDemo && <span className="badge badge-orange">Mode démo</span>}
-          </p>
+          <p>{pending} en attente</p>
         </div>
       </div>
 
       <div className="card table-wrap">
-        {loading ? 'Chargement...' : sorted.length === 0 ? 'Aucune commande.' : (
+        {loading ? 'Chargement...' : error ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <div className="badge badge-red">Impossible de joindre le serveur</div>
+            <div><button className="btn btn-primary" onClick={load}>Réessayer</button></div>
+          </div>
+        ) : sorted.length === 0 ? 'Aucune commande.' : (
           <table>
             <thead>
               <tr><th>Offre</th><th>Qté</th><th>Total</th><th>Statut</th><th>Action</th></tr>

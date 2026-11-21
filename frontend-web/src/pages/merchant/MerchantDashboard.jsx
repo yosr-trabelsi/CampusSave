@@ -2,37 +2,28 @@ import { useEffect, useState } from 'react'
 import { ShoppingBag, Wallet, Tag, Clock } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { getMerchantOrders, getOffers } from '../../services/api'
-import { getDemoOrders } from '../../services/demoOrders'
 import { useAuth } from '../../context/AuthContext'
-
-const seed = [
-  { id: 's1', totalPrice: 6, status: 'pending', createdAt: '2026-11-21T09:30:00.000Z' },
-  { id: 's2', totalPrice: 4, status: 'confirmed', createdAt: '2026-11-21T10:15:00.000Z' },
-]
 
 export default function MerchantDashboard() {
   const { user } = useAuth()
   const [orders, setOrders] = useState([])
   const [activeOffers, setActiveOffers] = useState(0)
-  const [isDemo, setIsDemo] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
-    const demo = () => {
-      const list = getDemoOrders()
-      setOrders(list.length ? list : seed)
-      setActiveOffers(2)
-      setIsDemo(true)
-    }
-    if (user?.isDemo) { demo(); setLoading(false); return }
+  const load = () => {
+    setLoading(true)
+    setError(false)
     Promise.all([getMerchantOrders(), getOffers()])
       .then(([list, offers]) => {
         setOrders(list)
         setActiveOffers(offers.filter((o) => o.merchantId === user?.uid && o.quantity > 0).length)
       })
-      .catch(demo)
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [user])
+  }
+
+  useEffect(() => { load() }, [user])
 
   const valid = orders.filter((o) => o.status !== 'cancelled')
   const revenue = valid.reduce((s, o) => s + Number(o.totalPrice || 0), 0)
@@ -60,14 +51,16 @@ export default function MerchantDashboard() {
       <div className="page-header">
         <div>
           <h1>Tableau de bord</h1>
-          <p>
-            Activité de votre commerce{' '}
-            {isDemo && <span className="badge badge-orange">Mode démo</span>}
-          </p>
+          <p>Activité de votre commerce</p>
         </div>
       </div>
 
-      {loading ? 'Chargement...' : (
+      {loading ? 'Chargement...' : error ? (
+        <div className="card" style={{ display: 'grid', gap: 12 }}>
+          <div className="badge badge-red">Impossible de joindre le serveur</div>
+          <div><button className="btn btn-primary" onClick={load}>Réessayer</button></div>
+        </div>
+      ) : (
         <>
           <div className="grid grid-4" style={{ marginBottom: 20 }}>
             {stats.map(({ label, value, icon: Icon, color }) => (
