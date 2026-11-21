@@ -3,11 +3,13 @@ import { Plus, Trash2, Pencil } from 'lucide-react'
 import { getOffers, createOffer, updateOffer, deleteOffer } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 
+const CATEGORIES = ['boulangerie', 'restaurant', 'cafeteria', 'epicerie', 'patisserie', 'autre']
+
 const demo = [
-  { id: 'd1', title: 'Panier viennoiseries', price: 3, originalPrice: 9, quantity: 5, expirationDate: '2026-11-25' },
-  { id: 'd2', title: 'Sandwich thon', price: 4, originalPrice: 8, quantity: 8, expirationDate: '2026-11-24' },
+  { id: 'd1', title: 'Panier viennoiseries', price: 3, originalPrice: 9, quantity: 5, expirationDate: '2026-11-25', category: 'boulangerie', pickupStart: '17:00', pickupEnd: '19:00' },
+  { id: 'd2', title: 'Sandwich thon', price: 4, originalPrice: 8, quantity: 8, expirationDate: '2026-11-24', category: 'cafeteria', pickupStart: '18:00', pickupEnd: '20:00' },
 ]
-const empty = { title: '', description: '', originalPrice: '', price: '', quantity: '', expirationDate: '' }
+const empty = { title: '', description: '', originalPrice: '', price: '', quantity: '', expirationDate: '', category: 'autre', imageUrl: '', pickupStart: '', pickupEnd: '' }
 
 export default function MyOffers() {
   const { user } = useAuth()
@@ -28,6 +30,10 @@ export default function MyOffers() {
   const submit = async (e) => {
     e.preventDefault()
     setError('')
+    if (form.pickupStart && form.pickupEnd && form.pickupEnd <= form.pickupStart) {
+      setError("L'heure de fin doit être après l'heure de début.")
+      return
+    }
     if (isDemo) {
       setOffers((l) => [{ ...form, id: 'n' + Date.now(), price: Number(form.price), originalPrice: Number(form.originalPrice), quantity: Number(form.quantity) }, ...l])
       setForm(empty)
@@ -90,6 +96,18 @@ export default function MyOffers() {
             <div className="field" style={{ flex: 1 }}><label>Date limite</label>
               <input className="input" type="date" value={form.expirationDate} onChange={set('expirationDate')} /></div>
           </div>
+          <div className="field"><label>Catégorie</label>
+            <select className="input" value={form.category} onChange={set('category')}>
+              {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+            </select></div>
+          <div className="field"><label>Photo (lien URL)</label>
+            <input className="input" type="url" placeholder="https://..." value={form.imageUrl} onChange={set('imageUrl')} /></div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div className="field" style={{ flex: 1 }}><label>Récupération de</label>
+              <input className="input" type="time" value={form.pickupStart} onChange={set('pickupStart')} /></div>
+            <div className="field" style={{ flex: 1 }}><label>à</label>
+              <input className="input" type="time" value={form.pickupEnd} onChange={set('pickupEnd')} /></div>
+          </div>
           {error && <div className="badge badge-red" style={{ marginBottom: 14 }}>{error}</div>}
           <button className="btn btn-primary"><Plus size={17} /> Publier</button>
         </form>
@@ -100,7 +118,13 @@ export default function MyOffers() {
             <tbody>
               {offers.map((o) => (
                 <tr key={o.id}>
-                  <td>{o.title}<small style={{ display: 'block', color: 'var(--muted)' }}>{o.expirationDate || '—'}</small></td>
+                  <td>
+                    {o.imageUrl && <img src={o.imageUrl} alt="" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, marginRight: 8, verticalAlign: 'middle' }} />}
+                    {o.title}
+                    <small style={{ display: 'block', color: 'var(--muted)' }}>
+                      {o.category || 'autre'} · {o.pickupStart && o.pickupEnd ? `${o.pickupStart}–${o.pickupEnd}` : 'horaire non défini'} · {o.expirationDate || '—'}
+                    </small>
+                  </td>
                   <td><b>{o.price} DT</b> <s style={{ color: 'var(--muted)' }}>{o.originalPrice}</s></td>
                   <td>{o.quantity}</td>
                   <td style={{ display: 'flex', gap: 6 }}>
