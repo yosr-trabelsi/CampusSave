@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ShoppingBag, Wallet, PiggyBank, Clock, Leaf, Award, Utensils } from 'lucide-react'
 import { getMyOrders, getOffers } from '../../services/api'
-import { getDemoOrders } from '../../services/demoOrders'
 import { useAuth } from '../../context/AuthContext'
 
 const POINTS_PER_PORTION = 10
@@ -19,12 +18,12 @@ export default function StudentDashboard() {
   const { user } = useAuth()
   const [orders, setOrders] = useState([])
   const [prices, setPrices] = useState({})
-  const [isDemo, setIsDemo] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
-    const demo = () => { setOrders(getDemoOrders()); setIsDemo(true) }
-    if (user?.isDemo) { demo(); setLoading(false); return }
+  const load = () => {
+    setLoading(true)
+    setError(false)
     Promise.all([getMyOrders(), getOffers().catch(() => [])])
       .then(([list, offers]) => {
         setOrders(list)
@@ -32,9 +31,11 @@ export default function StudentDashboard() {
         offers.forEach((o) => { map[o.id] = o.originalPrice })
         setPrices(map)
       })
-      .catch(demo)
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [user])
+  }
+
+  useEffect(() => { load() }, [user])
 
   const valid = orders.filter((o) => o.status !== 'cancelled')
   const spent = valid.reduce((s, o) => s + Number(o.totalPrice || 0), 0)
@@ -49,7 +50,7 @@ export default function StudentDashboard() {
   const picked = orders.filter((o) => o.status === 'completed')
   const meals = picked.reduce((s, o) => s + Number(o.quantity || 0), 0)
   const kg = meals * KG_PER_PORTION
-  const ecoPoints = user?.isDemo || isDemo ? meals * POINTS_PER_PORTION : Number(user?.ecoPoints ?? meals * POINTS_PER_PORTION)
+  const ecoPoints = Number(user?.ecoPoints ?? meals * POINTS_PER_PORTION)
 
   const stats = [
     { label: 'Commandes', value: valid.length, icon: ShoppingBag, color: '' },
@@ -69,14 +70,16 @@ export default function StudentDashboard() {
       <div className="page-header">
         <div>
           <h1>Mon tableau de bord</h1>
-          <p>
-            Bonjour {user?.name || ''}{' '}
-            {isDemo && <span className="badge badge-orange">Mode démo</span>}
-          </p>
+          <p>Bonjour {user?.name || ''}</p>
         </div>
       </div>
 
-      {loading ? 'Chargement...' : (
+      {loading ? 'Chargement...' : error ? (
+        <div className="card" style={{ display: 'grid', gap: 12 }}>
+          <div className="badge badge-red">Impossible de joindre le serveur</div>
+          <div><button className="btn btn-primary" onClick={load}>Réessayer</button></div>
+        </div>
+      ) : (
         <>
           <div className="grid grid-4" style={{ marginBottom: 20 }}>
             {stats.map(({ label, value, icon: Icon, color }) => (

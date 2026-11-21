@@ -1,23 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Search, Store, Clock } from 'lucide-react'
 import { getOffers, createOrder } from '../../services/api'
-import { addDemoOrder } from '../../services/demoOrders'
-import { useAuth } from '../../context/AuthContext'
 
 const CATEGORIES = ['boulangerie', 'restaurant', 'cafeteria', 'epicerie', 'patisserie', 'autre']
 
-const demo = [
-  { id: 'd1', title: 'Panier viennoiseries', businessName: 'Boulangerie Saveur', price: 3, originalPrice: 9, quantity: 5, expirationDate: '2026-11-25', category: 'boulangerie', pickupStart: '17:00', pickupEnd: '19:00' },
-  { id: 'd2', title: 'Plat du jour: couscous', businessName: 'Resto Zitouna', price: 5, originalPrice: 12, quantity: 3, expirationDate: '2026-11-24', category: 'restaurant', pickupStart: '14:00', pickupEnd: '16:00' },
-  { id: 'd3', title: 'Sandwich thon + boisson', businessName: 'Café Le Campus', price: 4, originalPrice: 8, quantity: 8, expirationDate: '2026-11-24', category: 'cafeteria', pickupStart: '18:00', pickupEnd: '20:00' },
-  { id: 'd4', title: 'Pizza margherita', businessName: 'Snack Express', price: 6, originalPrice: 14, quantity: 2, expirationDate: null, category: 'restaurant', pickupStart: null, pickupEnd: null },
-]
-
 export default function Offers() {
-  const { user } = useAuth()
   const [offers, setOffers] = useState([])
-  const [isDemo, setIsDemo] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
   const [q, setQ] = useState('')
   const [category, setCategory] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
@@ -26,14 +16,16 @@ export default function Offers() {
   const [msg, setMsg] = useState(null) // { ok: bool, text: string }
   const [busy, setBusy] = useState(false)
 
-  const demoMode = isDemo || user?.isDemo
-
-  useEffect(() => {
+  const load = () => {
+    setLoading(true)
+    setError(false)
     getOffers()
       .then(setOffers)
-      .catch(() => { setOffers(demo); setIsDemo(true) })
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { load() }, [])
 
   const shown = offers.filter((o) =>
     ((o.title || '') + ' ' + (o.businessName || '') + ' ' + (o.description || ''))
@@ -52,22 +44,7 @@ export default function Offers() {
     setBusy(true)
     setMsg(null)
     try {
-      if (demoMode) {
-        addDemoOrder({
-          id: 'o' + Date.now(),
-          offerId: o.id,
-          offerTitle: o.title,
-          originalPrice: o.originalPrice,
-          businessName: o.businessName,
-          quantity: qty,
-          unitPrice: o.price,
-          totalPrice: o.price * qty,
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-        })
-      } else {
-        await createOrder({ offerId: o.id, quantity: qty })
-      }
+      await createOrder({ offerId: o.id, quantity: qty })
       setOffers((l) => l.map((x) => (x.id === o.id ? { ...x, quantity: x.quantity - qty } : x)))
       setReserving(null)
       setMsg({ ok: true, text: `Réservation confirmée : ${qty} × ${o.title}` })
@@ -83,10 +60,7 @@ export default function Offers() {
       <div className="page-header">
         <div>
           <h1>Offres du moment</h1>
-          <p>
-            {shown.length} offre(s) disponible(s){' '}
-            {demoMode && <span className="badge badge-orange">Mode démo</span>}
-          </p>
+          <p>{shown.length} offre(s) disponible(s)</p>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative' }}>
@@ -109,7 +83,12 @@ export default function Offers() {
         </div>
       )}
 
-      {loading ? 'Chargement...' : shown.length === 0 ? <div className="card">Aucune offre trouvée.</div> : (
+      {loading ? 'Chargement...' : error ? (
+        <div className="card" style={{ display: 'grid', gap: 12 }}>
+          <div className="badge badge-red">Impossible de joindre le serveur</div>
+          <div><button className="btn btn-primary" onClick={load}>Réessayer</button></div>
+        </div>
+      ) : shown.length === 0 ? <div className="card">Aucune offre trouvée.</div> : (
         <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
           {shown.map((o) => {
             const off = Math.round((1 - o.price / o.originalPrice) * 100)

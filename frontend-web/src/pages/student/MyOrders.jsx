@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react'
 import { getMyOrders } from '../../services/api'
-import { getDemoOrders } from '../../services/demoOrders'
-import { useAuth } from '../../context/AuthContext'
 
 const badge = {
   pending: ['badge-orange', 'En attente'],
@@ -14,23 +12,20 @@ const badge = {
 const byDate = (a, b) => String(b.createdAt).localeCompare(String(a.createdAt))
 
 export default function MyOrders() {
-  const { user } = useAuth()
   const [orders, setOrders] = useState([])
-  const [isDemo, setIsDemo] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
-    if (user?.isDemo) {
-      setOrders(getDemoOrders())
-      setIsDemo(true)
-      setLoading(false)
-      return
-    }
+  const load = () => {
+    setLoading(true)
+    setError(false)
     getMyOrders()
       .then((list) => setOrders(list))
-      .catch(() => { setOrders(getDemoOrders()); setIsDemo(true) })
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [user])
+  }
+
+  useEffect(() => { load() }, [])
 
   const sorted = [...orders].sort(byDate)
 
@@ -39,15 +34,17 @@ export default function MyOrders() {
       <div className="page-header">
         <div>
           <h1>Mes commandes</h1>
-          <p>
-            {sorted.length} réservation(s){' '}
-            {isDemo && <span className="badge badge-orange">Mode démo</span>}
-          </p>
+          <p>{sorted.length} réservation(s)</p>
         </div>
       </div>
 
       <div className="card table-wrap">
-        {loading ? 'Chargement...' : sorted.length === 0 ? 'Aucune réservation pour le moment.' : (
+        {loading ? 'Chargement...' : error ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <div className="badge badge-red">Impossible de joindre le serveur</div>
+            <div><button className="btn btn-primary" onClick={load}>Réessayer</button></div>
+          </div>
+        ) : sorted.length === 0 ? 'Aucune réservation pour le moment.' : (
           <table>
             <thead>
               <tr><th>Offre</th><th>Qté</th><th>Total</th><th>Statut</th><th>Date</th></tr>
