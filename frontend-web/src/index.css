@@ -136,3 +136,33 @@ tbody tr:hover { background: #faf9f4; }
   .sidebar { display: none; }
   .main { padding: 20px; }
 }
+/* ---------- Responsive ---------- */
+.menu-btn {
+  display: none;
+  position: fixed; top: 14px; left: 14px; z-index: 60;
+  width: 44px; height: 44px; border-radius: 12px; border: none;
+  background: var(--deep); color: #fff; cursor: pointer;
+  place-items: center;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.backdrop { display: none; }
+
+@media (max-width: 800px) {
+  .menu-btn { display: grid; }
+  .sidebar {
+    display: flex;
+    position: fixed; top: 0; left: 0; z-index: 70;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+  }
+  .sidebar.open { transform: none; }
+  .backdrop.show {
+    display: block; position: fixed; inset: 0; z-index: 65;
+    background: rgba(0, 0, 0, 0.45);
+  }
+  .main { padding: 70px 16px 24px; }
+  .page-header { flex-direction: column; align-items: stretch; gap: 14px; }
+  .page-header > div { max-width: 100%; }
+  .page-header input.input { width: 100% !important; }
+  .grid-2 { grid-template-columns: 1fr; }
+}

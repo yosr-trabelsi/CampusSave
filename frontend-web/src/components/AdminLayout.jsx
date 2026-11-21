@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
-import { LayoutDashboard, Users, Store, ShoppingBag, LogOut, Leaf } from 'lucide-react'
+import { LayoutDashboard, Users, Store, ShoppingBag, LogOut, Leaf, Menu } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 
 const links = [
@@ -11,9 +12,15 @@ const links = [
 
 export default function AdminLayout() {
   const { logout } = useAuth()
+  const [open, setOpen] = useState(false)
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      <button className="menu-btn" onClick={() => setOpen(true)} aria-label="Menu">
+        <Menu size={22} />
+      </button>
+      <div className={'backdrop' + (open ? ' show' : '')} onClick={() => setOpen(false)} />
+
+      <aside className={'sidebar' + (open ? ' open' : '')}>
         <div className="brand">
           <div className="brand-dot"><Leaf size={20} /></div>
           CampusSave
@@ -24,6 +31,7 @@ export default function AdminLayout() {
             key={to}
             to={to}
             end={end}
+            onClick={() => setOpen(false)}
             className={({ isActive }) => 'nav-link' + (isActive ? ' active' : '')}
           >
             <Icon size={19} />
@@ -32,7 +40,8 @@ export default function AdminLayout() {
         ))}
 
         <div className="sidebar-footer">
-          <button className="nav-link" style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+          <button className="nav-link" onClick={logout}
+            style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
             <LogOut size={19} />
             Déconnexion
           </button>

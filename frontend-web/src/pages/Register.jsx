@@ -22,7 +22,12 @@ export default function Register() {
       await registerUser(form)
       navigate('/login')
     } catch (err) {
-      setError(err.response?.data?.message || err.response?.data?.error || "Erreur lors de l'inscription")
+      setError(
+        !err.response
+          ? "Serveur injoignable : le backend n'est pas lancé"
+          : err.response?.data?.message || err.response?.data?.error || "Erreur lors de l'inscription"
+      )
+
     } finally {
       setBusy(false)
     }
