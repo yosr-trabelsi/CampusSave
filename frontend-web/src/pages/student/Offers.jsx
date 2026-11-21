@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
-import { Search, Store } from 'lucide-react'
+import { Search, Store, Clock } from 'lucide-react'
 import { getOffers, createOrder } from '../../services/api'
 import { addDemoOrder } from '../../services/demoOrders'
 import { useAuth } from '../../context/AuthContext'
 
+const CATEGORIES = ['boulangerie', 'restaurant', 'cafeteria', 'epicerie', 'patisserie', 'autre']
+
 const demo = [
-  { id: 'd1', title: 'Panier viennoiseries', businessName: 'Boulangerie Saveur', price: 3, originalPrice: 9, quantity: 5, expirationDate: '2026-11-25' },
-  { id: 'd2', title: 'Plat du jour: couscous', businessName: 'Resto Zitouna', price: 5, originalPrice: 12, quantity: 3, expirationDate: '2026-11-24' },
-  { id: 'd3', title: 'Sandwich thon + boisson', businessName: 'Café Le Campus', price: 4, originalPrice: 8, quantity: 8, expirationDate: '2026-11-24' },
-  { id: 'd4', title: 'Pizza margherita', businessName: 'Snack Express', price: 6, originalPrice: 14, quantity: 2, expirationDate: null },
+  { id: 'd1', title: 'Panier viennoiseries', businessName: 'Boulangerie Saveur', price: 3, originalPrice: 9, quantity: 5, expirationDate: '2026-11-25', category: 'boulangerie', pickupStart: '17:00', pickupEnd: '19:00' },
+  { id: 'd2', title: 'Plat du jour: couscous', businessName: 'Resto Zitouna', price: 5, originalPrice: 12, quantity: 3, expirationDate: '2026-11-24', category: 'restaurant', pickupStart: '14:00', pickupEnd: '16:00' },
+  { id: 'd3', title: 'Sandwich thon + boisson', businessName: 'Café Le Campus', price: 4, originalPrice: 8, quantity: 8, expirationDate: '2026-11-24', category: 'cafeteria', pickupStart: '18:00', pickupEnd: '20:00' },
+  { id: 'd4', title: 'Pizza margherita', businessName: 'Snack Express', price: 6, originalPrice: 14, quantity: 2, expirationDate: null, category: 'restaurant', pickupStart: null, pickupEnd: null },
 ]
 
 export default function Offers() {
@@ -17,6 +19,7 @@ export default function Offers() {
   const [isDemo, setIsDemo] = useState(false)
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
+  const [category, setCategory] = useState('')
   const [maxPrice, setMaxPrice] = useState('')
   const [reserving, setReserving] = useState(null) // id de l'offre en cours de réservation
   const [qty, setQty] = useState(1)
@@ -33,8 +36,9 @@ export default function Offers() {
   }, [])
 
   const shown = offers.filter((o) =>
-    ((o.title || '') + (o.businessName || '') + (o.description || ''))
+    ((o.title || '') + ' ' + (o.businessName || '') + ' ' + (o.description || ''))
       .toLowerCase().includes(q.toLowerCase()) &&
+    (category === '' || (o.category || 'autre') === category) &&
     (maxPrice === '' || o.price <= Number(maxPrice))
   )
 
@@ -84,12 +88,16 @@ export default function Offers() {
             {demoMode && <span className="badge badge-orange">Mode démo</span>}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <div style={{ position: 'relative' }}>
             <Search size={17} style={{ position: 'absolute', left: 14, top: 14, color: 'var(--muted)' }} />
             <input className="input" style={{ paddingLeft: 40, width: 240 }}
               placeholder="Produit ou commerce..." value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
+          <select className="input" style={{ width: 160 }} value={category} onChange={(e) => setCategory(e.target.value)}>
+            <option value="">Toutes catégories</option>
+            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
           <input className="input" style={{ width: 130 }} type="number" min="0"
             placeholder="Prix max" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} />
         </div>
@@ -108,6 +116,10 @@ export default function Offers() {
             const soldOut = !(o.quantity > 0)
             return (
               <div className="card stat-card" key={o.id}>
+                {o.imageUrl && (
+                  <img src={o.imageUrl} alt={o.title}
+                    style={{ width: '100%', height: 140, objectFit: 'cover', borderRadius: 10 }} />
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span className="badge badge-orange">-{off}%</span>
                   <span className={'badge ' + (soldOut ? 'badge-red' : 'badge-green')}>
@@ -116,12 +128,17 @@ export default function Offers() {
                 </div>
                 <h3>{o.title}</h3>
                 <div className="stat-label" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                  <Store size={15} /> {o.businessName}
+                  <Store size={15} /> {o.businessName} · {o.category || 'autre'}
                 </div>
                 <div>
                   <span style={{ fontSize: '1.6rem', fontWeight: 800, color: 'var(--primary)' }}>{o.price} DT</span>{' '}
                   <s className="stat-label">{o.originalPrice} DT</s>
                 </div>
+                {o.pickupStart && o.pickupEnd && (
+                  <div className="stat-label" style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <Clock size={15} /> Récupération : {o.pickupStart}–{o.pickupEnd}
+                  </div>
+                )}
                 {o.expirationDate && <div className="stat-label">À récupérer avant le {o.expirationDate}</div>}
 
                 {reserving === o.id ? (
