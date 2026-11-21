@@ -1,5 +1,8 @@
 const { db } = require('../config/firebase');
 
+const CATEGORIES = ['boulangerie', 'restaurant', 'cafeteria', 'epicerie', 'patisserie', 'autre'];
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 const getOffers = async (req, res) => {
   try {
     const snapshot = await db.collection('offers')
@@ -52,7 +55,11 @@ const createOffer = async (req, res) => {
       price,
       originalPrice,
       quantity,
-      expirationDate
+      expirationDate,
+      category,
+      imageUrl,
+      pickupStart,
+      pickupEnd
     } = req.body;
 
     if (
@@ -79,6 +86,19 @@ const createOffer = async (req, res) => {
       });
     }
 
+    if (category && !CATEGORIES.includes(category)) {
+      return res.status(400).json({ error: 'Catégorie invalide.' });
+    }
+    if (pickupStart && !TIME_RE.test(pickupStart)) {
+      return res.status(400).json({ error: 'Heure de début invalide.' });
+    }
+    if (pickupEnd && !TIME_RE.test(pickupEnd)) {
+      return res.status(400).json({ error: 'Heure de fin invalide.' });
+    }
+    if (pickupStart && pickupEnd && pickupEnd <= pickupStart) {
+      return res.status(400).json({ error: "L'heure de fin doit être après l'heure de début." });
+    }
+
     const merchantDoc = await db.collection('merchants')
       .doc(req.user.uid)
       .get();
@@ -99,6 +119,10 @@ const createOffer = async (req, res) => {
       originalPrice: Number(originalPrice),
       quantity: Number(quantity),
       expirationDate: expirationDate || null,
+      category: category || 'autre',
+      imageUrl: imageUrl || '',
+      pickupStart: pickupStart || null,
+      pickupEnd: pickupEnd || null,
       isAvailable: true,
       createdAt: new Date().toISOString()
     };
