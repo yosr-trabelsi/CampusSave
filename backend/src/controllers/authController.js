@@ -49,3 +49,24 @@ exports.me = async (req, res, next) => {
     res.json(snap.data());
   } catch (err) { next(err); }
 };
+
+// PUT /api/auth/me  (connecté) : modifier son profil
+exports.updateMe = async (req, res, next) => {
+  try {
+    const { name, phone, businessName, address } = req.body;
+    const update = {};
+    if (typeof name === 'string' && name.trim().length >= 2) update.name = name.trim();
+    if (typeof phone === 'string') update.phone = phone.trim() || null;
+
+    const ref = db.collection('users').doc(req.user.uid);
+    const snap = await ref.get();
+    if (!snap.exists) return res.status(404).json({ message: 'Profil introuvable' });
+    if (snap.data().role === 'merchant') {
+      if (typeof businessName === 'string') update.businessName = businessName.trim();
+      if (typeof address === 'string') update.address = address.trim();
+    }
+
+    await ref.update(update);
+    res.json({ ...snap.data(), ...update });
+  } catch (err) { next(err); }
+};
