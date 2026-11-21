@@ -1,9 +1,8 @@
-const errorMiddleware = (err, req, res, next) => {
+exports.notFound = (req, res) =>
+  res.status(404).json({ message: `Route introuvable : ${req.originalUrl}` });
+
+// eslint-disable-next-line no-unused-vars
+exports.errorHandler = (err, req, res, next) => {
   console.error(err);
-
-  return res.status(err.status || 500).json({
-    error: err.message || 'Erreur interne du serveur.'
-  });
+  res.status(err.status || 500).json({ message: err.message || 'Erreur serveur' });
 };
-
-module.exports = errorMiddleware;
