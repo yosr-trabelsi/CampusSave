@@ -4,6 +4,7 @@ import '../../providers/offers_provider.dart';
 import '../../utils/constants.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/logout_button.dart';
 import '../../widgets/offer_card.dart';
 import 'home_screen.dart';
 import 'offer_details_screen.dart';
@@ -130,7 +131,9 @@ class OffersScreen extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: pad,
             children: [
-              PageHeader('Offres du moment', subtitle: '${offers.length} offre(s) disponible(s)'),
+              PageHeader('Offres du moment',
+                  subtitle: '${offers.length} offre(s) disponible(s)',
+                  trailing: c.maxWidth >= 800 ? null : const LogoutButton()),
               Row(children: [
                 Expanded(
                   child: TextField(

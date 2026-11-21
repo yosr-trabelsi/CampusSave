@@ -6,6 +6,7 @@ import '../../providers/orders_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/format.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/logout_button.dart';
 import 'home_screen.dart';
 import 'my_orders_screen.dart';
 
@@ -102,7 +103,11 @@ class StudentDashboard extends StatelessWidget {
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: pad,
-            children: [PageHeader('Mon tableau de bord', subtitle: 'Bonjour ${user?.name ?? ''}'), body],
+            children: [
+              PageHeader('Mon tableau de bord',
+                  subtitle: 'Bonjour ${user?.name ?? ''}', trailing: wide ? null : const LogoutButton()),
+              body,
+            ],
           );
         }),
       ),

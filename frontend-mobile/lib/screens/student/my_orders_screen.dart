@@ -6,6 +6,7 @@ import '../../utils/constants.dart';
 import '../../utils/format.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/logout_button.dart';
 import 'home_screen.dart';
 import 'order_qr_screen.dart';
 import 'payment_screen.dart';
@@ -56,7 +57,9 @@ class MyOrdersScreen extends StatelessWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: pad,
             children: [
-              PageHeader('Mes commandes', subtitle: '${p.orders.length} réservation(s)'),
+              PageHeader('Mes commandes',
+                  subtitle: '${p.orders.length} réservation(s)',
+                  trailing: c.maxWidth >= 800 ? null : const LogoutButton()),
               Align(alignment: Alignment.topCenter, child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 760), child: content)),
             ],
           );

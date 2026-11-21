@@ -6,6 +6,7 @@ import '../../utils/constants.dart';
 import '../../utils/validators.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/custom_button.dart';
+import '../../widgets/logout_button.dart';
 import 'home_screen.dart';
 
 /// Profil étudiant : même contenu que frontend-web/src/pages/Profile.jsx (carte d'identité + formulaire).
@@ -144,7 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             if (!wide) ...[
               const SizedBox(height: 16),
               OutlinedButton.icon(
-                onPressed: auth.logout,
+                onPressed: () => confirmLogout(context),
                 icon: const Icon(Icons.logout),
                 label: const Text('Déconnexion'),
               ),

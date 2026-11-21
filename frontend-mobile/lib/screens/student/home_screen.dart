@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../providers/auth_provider.dart';
 import '../../providers/offers_provider.dart';
 import '../../providers/orders_provider.dart';
 import '../../utils/constants.dart';
 import '../../widgets/app_widgets.dart';
+import '../../widgets/logout_button.dart';
 import 'my_orders_screen.dart';
 import 'offers_screen.dart';
 import 'profile_screen.dart';
@@ -106,7 +106,7 @@ class _Sidebar extends StatelessWidget {
             icon: Icons.logout,
             label: 'Déconnexion',
             selected: false,
-            onTap: () => context.read<AuthProvider>().logout(),
+            onTap: () => confirmLogout(context),
           ),
         ]),
       ),

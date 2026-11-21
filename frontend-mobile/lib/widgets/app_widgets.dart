@@ -68,19 +68,25 @@ class AppBadge extends StatelessWidget {
 class PageHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
-  const PageHeader(this.title, {super.key, this.subtitle});
+  final Widget? trailing;
+  const PageHeader(this.title, {super.key, this.subtitle, this.trailing});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
-        if (subtitle != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(subtitle!, style: const TextStyle(color: AppColors.muted)),
-          ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+            if (subtitle != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(subtitle!, style: const TextStyle(color: AppColors.muted)),
+              ),
+          ]),
+        ),
+        if (trailing != null) trailing!,
       ]),
     );
   }
