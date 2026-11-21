@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
-import { ShoppingBag, Wallet, PiggyBank, Clock } from 'lucide-react'
+import { ShoppingBag, Wallet, PiggyBank, Clock, Leaf, Award, Utensils } from 'lucide-react'
 import { getMyOrders, getOffers } from '../../services/api'
 import { getDemoOrders } from '../../services/demoOrders'
 import { useAuth } from '../../context/AuthContext'
+
+const POINTS_PER_PORTION = 10
+const KG_PER_PORTION = 0.4 // hypothèse: 0,4 kg de nourriture sauvée par portion
 
 const badge = {
   pending: ['badge-orange', 'En attente'],
@@ -42,11 +45,23 @@ export default function StudentDashboard() {
   const active = orders.filter((o) => ['pending', 'confirmed', 'ready'].includes(o.status)).length
   const recent = [...orders].sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 5)
 
+  // Impact + EcoPoints (commandes récupérées uniquement)
+  const picked = orders.filter((o) => o.status === 'completed')
+  const meals = picked.reduce((s, o) => s + Number(o.quantity || 0), 0)
+  const kg = meals * KG_PER_PORTION
+  const ecoPoints = user?.isDemo || isDemo ? meals * POINTS_PER_PORTION : Number(user?.ecoPoints ?? meals * POINTS_PER_PORTION)
+
   const stats = [
     { label: 'Commandes', value: valid.length, icon: ShoppingBag, color: '' },
     { label: 'Total dépensé', value: spent.toFixed(2) + ' DT', icon: Wallet, color: 'orange' },
     { label: 'Économies réalisées', value: saved.toFixed(2) + ' DT', icon: PiggyBank, color: '' },
     { label: 'En cours', value: active, icon: Clock, color: 'red' },
+  ]
+
+  const impact = [
+    { label: 'Repas sauvés', value: meals, icon: Utensils, color: '' },
+    { label: 'Gaspillage évité', value: kg.toFixed(1) + ' kg', icon: Leaf, color: '' },
+    { label: 'EcoPoints', value: ecoPoints, icon: Award, color: 'orange' },
   ]
 
   return (
@@ -65,6 +80,19 @@ export default function StudentDashboard() {
         <>
           <div className="grid grid-4" style={{ marginBottom: 20 }}>
             {stats.map(({ label, value, icon: Icon, color }) => (
+              <div className="card stat-card" key={label}>
+                <div className={'stat-icon ' + color}><Icon size={22} /></div>
+                <div>
+                  <div className="stat-value">{value}</div>
+                  <div className="stat-label">{label}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <h3 style={{ marginBottom: 12 }}>Mon impact</h3>
+          <div className="grid grid-3" style={{ marginBottom: 20 }}>
+            {impact.map(({ label, value, icon: Icon, color }) => (
               <div className="card stat-card" key={label}>
                 <div className={'stat-icon ' + color}><Icon size={22} /></div>
                 <div>

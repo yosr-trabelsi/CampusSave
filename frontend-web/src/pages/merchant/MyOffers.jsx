@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Plus, Trash2, Pencil } from 'lucide-react'
+import { Plus, Trash2, Pencil, Save, X } from 'lucide-react'
 import { getOffers, createOffer, updateOffer, deleteOffer } from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
 
@@ -16,6 +16,7 @@ export default function MyOffers() {
   const [offers, setOffers] = useState([])
   const [isDemo, setIsDemo] = useState(false)
   const [form, setForm] = useState(empty)
+  const [editingId, setEditingId] = useState(null)
   const [error, setError] = useState('')
 
   const load = () =>
@@ -27,6 +28,30 @@ export default function MyOffers() {
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
 
+  const startEdit = (o) => {
+    setError('')
+    setEditingId(o.id)
+    setForm({
+      title: o.title ?? '',
+      description: o.description ?? '',
+      originalPrice: o.originalPrice ?? '',
+      price: o.price ?? '',
+      quantity: o.quantity ?? '',
+      expirationDate: o.expirationDate ?? '',
+      category: o.category || 'autre',
+      imageUrl: o.imageUrl ?? '',
+      pickupStart: o.pickupStart ?? '',
+      pickupEnd: o.pickupEnd ?? '',
+    })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setForm(empty)
+    setError('')
+  }
+
   const submit = async (e) => {
     e.preventDefault()
     setError('')
@@ -34,17 +59,33 @@ export default function MyOffers() {
       setError("L'heure de fin doit être après l'heure de début.")
       return
     }
+    if (Number(form.price) > Number(form.originalPrice)) {
+      setError('Le prix réduit doit être inférieur au prix initial.')
+      return
+    }
+    const payload = {
+      ...form,
+      price: Number(form.price),
+      originalPrice: Number(form.originalPrice),
+      quantity: Number(form.quantity),
+    }
+
     if (isDemo) {
-      setOffers((l) => [{ ...form, id: 'n' + Date.now(), price: Number(form.price), originalPrice: Number(form.originalPrice), quantity: Number(form.quantity) }, ...l])
-      setForm(empty)
+      if (editingId) {
+        setOffers((l) => l.map((x) => (x.id === editingId ? { ...x, ...payload } : x)))
+      } else {
+        setOffers((l) => [{ ...payload, id: 'n' + Date.now() }, ...l])
+      }
+      cancelEdit()
       return
     }
     try {
-      await createOffer(form)
-      setForm(empty)
+      if (editingId) await updateOffer(editingId, payload)
+      else await createOffer(payload)
+      cancelEdit()
       load()
     } catch (err) {
-      setError(err.response?.data?.error || 'Erreur lors de la création')
+      setError(err.response?.data?.error || (editingId ? 'Erreur lors de la modification' : 'Erreur lors de la création'))
     }
   }
 
@@ -54,15 +95,7 @@ export default function MyOffers() {
       try { await deleteOffer(id) } catch (err) { return alert(err.response?.data?.error || 'Erreur') }
     }
     setOffers((l) => l.filter((o) => o.id !== id))
-  }
-
-  const editQty = async (o) => {
-    const v = prompt('Nouvelle quantité :', o.quantity)
-    if (v === null || v === '' || isNaN(Number(v))) return
-    if (!isDemo) {
-      try { await updateOffer(o.id, { quantity: Number(v) }) } catch (err) { return alert(err.response?.data?.error || 'Erreur') }
-    }
-    setOffers((l) => l.map((x) => (x.id === o.id ? { ...x, quantity: Number(v) } : x)))
+    if (editingId === id) cancelEdit()
   }
 
   return (
@@ -79,7 +112,7 @@ export default function MyOffers() {
 
       <div className="grid grid-2">
         <form className="card" onSubmit={submit}>
-          <h3 style={{ marginBottom: 16 }}>Nouvelle offre</h3>
+          <h3 style={{ marginBottom: 16 }}>{editingId ? "Modifier l'offre" : 'Nouvelle offre'}</h3>
           <div className="field"><label>Titre</label>
             <input className="input" required value={form.title} onChange={set('title')} /></div>
           <div className="field"><label>Description</label>
@@ -109,7 +142,14 @@ export default function MyOffers() {
               <input className="input" type="time" value={form.pickupEnd} onChange={set('pickupEnd')} /></div>
           </div>
           {error && <div className="badge badge-red" style={{ marginBottom: 14 }}>{error}</div>}
-          <button className="btn btn-primary"><Plus size={17} /> Publier</button>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button className="btn btn-primary">
+              {editingId ? <><Save size={17} /> Enregistrer</> : <><Plus size={17} /> Publier</>}
+            </button>
+            {editingId && (
+              <button type="button" className="btn btn-ghost" onClick={cancelEdit}><X size={17} /> Annuler</button>
+            )}
+          </div>
         </form>
 
         <div className="card table-wrap">
@@ -128,7 +168,7 @@ export default function MyOffers() {
                   <td><b>{o.price} DT</b> <s style={{ color: 'var(--muted)' }}>{o.originalPrice}</s></td>
                   <td>{o.quantity}</td>
                   <td style={{ display: 'flex', gap: 6 }}>
-                    <button className="btn btn-sm btn-ghost" onClick={() => editQty(o)}><Pencil size={14} /></button>
+                    <button className="btn btn-sm btn-ghost" onClick={() => startEdit(o)}><Pencil size={14} /></button>
                     <button className="btn btn-sm btn-danger" onClick={() => remove(o.id)}><Trash2 size={14} /></button>
                   </td>
                 </tr>

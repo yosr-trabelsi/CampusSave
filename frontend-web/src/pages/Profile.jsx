@@ -1,9 +1,11 @@
 import { useState } from 'react'
-import { Mail, Phone, Store, MapPin, Shield } from 'lucide-react'
+import { Mail, Phone, Store, MapPin, Shield, Award, Leaf } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { updateProfile } from '../services/api'
 
 const roleLabel = { student: 'Étudiant', merchant: 'Commerçant', admin: 'Administrateur' }
+const POINTS_PER_PORTION = 10
+const KG_PER_PORTION = 0.4
 
 export default function Profile() {
   const { user, updateUser } = useAuth()
@@ -16,6 +18,10 @@ export default function Profile() {
   const [msg, setMsg] = useState(null)
 
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value })
+
+  const ecoPoints = Number(user?.ecoPoints || 0)
+  const meals = Math.round(ecoPoints / POINTS_PER_PORTION)
+  const kg = (meals * KG_PER_PORTION).toFixed(1)
 
   const submit = async (e) => {
     e.preventDefault()
@@ -75,6 +81,18 @@ export default function Profile() {
           {user?.role === 'merchant' && user?.address && (
             <div className="stat-label" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <MapPin size={15} /> {user.address}
+            </div>
+          )}
+          {user?.role === 'student' && (
+            <div style={{ borderTop: '1px solid var(--border, #e5e5e5)', paddingTop: 14, display: 'grid', gap: 10 }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <Award size={18} />
+                <b style={{ fontSize: '1.4rem' }}>{ecoPoints}</b>
+                <span className="stat-label">EcoPoints</span>
+              </div>
+              <div className="stat-label" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <Leaf size={15} /> {meals} repas sauvé(s) · {kg} kg de gaspillage évité
+              </div>
             </div>
           )}
           {user?.isDemo && <span className="badge badge-orange">Mode démo</span>}
