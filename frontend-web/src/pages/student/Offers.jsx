@@ -53,6 +53,7 @@ export default function Offers() {
           id: 'o' + Date.now(),
           offerId: o.id,
           offerTitle: o.title,
+          originalPrice: o.originalPrice,
           businessName: o.businessName,
           quantity: qty,
           unitPrice: o.price,
