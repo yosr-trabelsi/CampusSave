@@ -113,7 +113,7 @@ const updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
 
-    const allowedStatuses = ['confirmed', 'ready', 'cancelled'];
+    const allowedStatuses = ['confirmed', 'ready', 'completed', 'cancelled'];
 
     if (!allowedStatuses.includes(status)) {
       return res.status(400).json({
@@ -139,7 +139,7 @@ const updateOrderStatus = async (req, res) => {
       const transitions = {
         pending: ['confirmed', 'cancelled'],
         confirmed: ['ready', 'cancelled'],
-        ready: [],
+        ready: ['completed'],
         completed: [],
         cancelled: []
       };
