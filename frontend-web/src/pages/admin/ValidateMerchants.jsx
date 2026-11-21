@@ -2,13 +2,6 @@ import { useEffect, useState } from 'react'
 import { Check, X } from 'lucide-react'
 import { getUsers, approveMerchant, rejectMerchant } from '../../services/api'
 
-const demo = [
-  { uid: 'm1', shop: 'Café Le Campus', owner: 'Karim Dridi', status: 'pending' },
-  { uid: 'm2', shop: 'Resto Zitouna', owner: 'Hela Gharbi', status: 'pending' },
-  { uid: 'm3', shop: 'Boulangerie Saveur', owner: 'Omar Jlassi', status: 'approved' },
-  { uid: 'm4', shop: 'Snack Express', owner: 'Nour Hamdi', status: 'rejected' },
-]
-
 const badge = {
   pending: ['badge-orange', 'En attente'],
   approved: ['badge-green', 'Validé'],
@@ -17,10 +10,12 @@ const badge = {
 
 export default function ValidateMerchants() {
   const [list, setList] = useState([])
-  const [isDemo, setIsDemo] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
-  useEffect(() => {
+  const load = () => {
+    setLoading(true)
+    setError(false)
     getUsers()
       .then((users) => {
         const merchants = users
@@ -33,22 +28,19 @@ export default function ValidateMerchants() {
           }))
         setList(merchants)
       })
-      .catch(() => {
-        setList(demo)
-        setIsDemo(true)
-      })
+      .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [])
+  }
+
+  useEffect(() => { load() }, [])
 
   const decide = async (uid, status) => {
-    if (!isDemo) {
-      try {
-        if (status === 'approved') await approveMerchant(uid)
-        else await rejectMerchant(uid)
-      } catch (err) {
-        alert(err.response?.data?.error || 'Erreur lors de la validation')
-        return
-      }
+    try {
+      if (status === 'approved') await approveMerchant(uid)
+      else await rejectMerchant(uid)
+    } catch (err) {
+      alert(err.response?.data?.error || 'Erreur lors de la validation')
+      return
     }
     setList((l) => l.map((m) => (m.uid === uid ? { ...m, status } : m)))
   }
@@ -60,15 +52,17 @@ export default function ValidateMerchants() {
       <div className="page-header">
         <div>
           <h1>Commerçants</h1>
-          <p>
-            {pending} demande(s) en attente{' '}
-            {isDemo && <span className="badge badge-orange">Mode démo</span>}
-          </p>
+          <p>{pending} demande(s) en attente</p>
         </div>
       </div>
 
       <div className="card table-wrap">
-        {loading ? 'Chargement...' : list.length === 0 ? 'Aucune demande.' : (
+        {loading ? 'Chargement...' : error ? (
+          <div style={{ display: 'grid', gap: 12 }}>
+            <div className="badge badge-red">Impossible de joindre le serveur</div>
+            <div><button className="btn btn-primary" onClick={load}>Réessayer</button></div>
+          </div>
+        ) : list.length === 0 ? 'Aucune demande.' : (
           <table>
             <thead>
               <tr><th>Commerce</th><th>Statut</th><th>Action</th></tr>
@@ -83,7 +77,7 @@ export default function ValidateMerchants() {
                     </div>
                   </td>
                   <td>
-                    <span className={'badge ' + badge[m.status][0]}>{badge[m.status][1]}</span>
+                    <span className={'badge ' + (badge[m.status] || badge.pending)[0]}>{(badge[m.status] || badge.pending)[1]}</span>
                   </td>
                   <td>
                     {m.status === 'pending' ? (
