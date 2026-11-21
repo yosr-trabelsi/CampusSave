@@ -42,7 +42,7 @@ export function AuthProvider({ children }) {
     sessionStorage.setItem(DEMO_KEY, role)
     setUser(demoUser(role))
   }
-
+  const updateUser = (patch) => setUser((u) => ({ ...u, ...patch }))
   const logout = async () => {
     sessionStorage.removeItem(DEMO_KEY)
     setUser(null)
@@ -50,7 +50,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, loginDemo, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, loginDemo, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

@@ -27,4 +27,5 @@ export const createOrder = (data) => api.post('/orders', data).then((r) => r.dat
 export const getMyOrders = () => api.get('/orders/my-orders').then((r) => r.data)
 export const getMerchantOrders = () => api.get('/orders/merchant-orders').then((r) => r.data)
 export const updateOrderStatus = (id, status) => api.put(`/orders/${id}/status`, { status })
+export const updateProfile = (data) => api.put('/auth/me', data).then((r) => r.data)
 export default api
