@@ -14,6 +14,8 @@ app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/qr', require('./routes/qrRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/payments', require('./routes/paymentRoutes'));
+app.use('/api/offers', require('./routes/offerRoutes'));
+app.use('/api/orders', require('./routes/orderRoutes'));
 
 app.use(notFound);
 app.use(errorHandler);
